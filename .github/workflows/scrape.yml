@@ -31,7 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Get high lakes json
+      - name: Get fish plants json
         run: python get_wdfw_fish_plants.py
 
       # Step 5: Commit and push changes if the data has been updated.
