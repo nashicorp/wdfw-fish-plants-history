@@ -2,6 +2,8 @@ import requests
 import json
 import time
 
+START_YEAR = 0
+
 def scrape_fish_plants(start_year=2010):
     """
     Scrapes fish plant data from the WDFW API, filtering by release_year.
@@ -18,9 +20,9 @@ def scrape_fish_plants(start_year=2010):
     # Socrata API query parameters
     params = {
         # Using Socrata Query Language (SoQL) to filter by year
-        # `release_year >= 2010`
+        # `release_year >= `
         "$where": f"release_year >= {start_year}",
-        "$limit": 500000  # Set a high limit to get all records, Socrata's default is 1,000
+        "$limit": 5000000  # Set a high limit to get all records, Socrata's default is 1,000
     }
 
     try:
@@ -43,8 +45,8 @@ def main():
     # Define the output file name
     OUTPUT_FILE = "wdfw_fish_plants.json"
 
-    # Scrape the data, starting from 2010
-    fish_plants = scrape_fish_plants(start_year=2010)
+    # Scrape the data, starting from START_YEAR
+    fish_plants = scrape_fish_plants(start_year=START_YEAR)
 
     if fish_plants:
         # Save the data to a JSON file
