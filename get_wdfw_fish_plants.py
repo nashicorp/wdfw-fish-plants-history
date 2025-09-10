@@ -1,60 +1,47 @@
-import requests
 import json
 import time
+from datetime import datetime
 
-START_YEAR = 0
+import requests
 
-def scrape_fish_plants(start_year=2010):
-    """
-    Scrapes fish plant data from the WDFW API, filtering by release_year.
 
-    Args:
-        start_year (int): The earliest year to include in the data.
+def fetch_and_save():
+    print(f"[{datetime.now()}] Starting fetch of WDFW fish plants data...")
 
-    Returns:
-        list: A list of dictionaries, where each dictionary is a fish plant record.
-    """
-    # The API endpoint for the WDFW-Fish Plants dataset
-    API_URL = "https://data.wa.gov/resource/6fex-3r7d.json"
+    base_url = "https://data.wa.gov/resource/6fex-3r7d.json"
+    all_data = []
+    offset = 0
+    limit = 1000
 
-    # Socrata API query parameters
-    params = {
-        # Using Socrata Query Language (SoQL) to filter by year
-        # `release_year >= `
-        "$where": f"release_year >= {start_year}",
-        "$limit": 5000000  # Set a high limit to get all records, Socrata's default is 1,000
-    }
+    while True:
+        url = f"{base_url}?$limit={limit}&$offset={offset}"
+        try:
+            print(f"[{datetime.now()}] Fetching data from offset {offset}...")
+            response = requests.get(url)
+            response.raise_for_status()
 
-    try:
-        print(f"Fetching fish plant data from {start_year} to present...")
-        response = requests.get(API_URL, params=params, timeout=60)
-        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+            page_data = response.json()
+            all_data.extend(page_data)
 
-        data = response.json()
-        print(f"Successfully retrieved {len(data)} fish plant records.")
-        return data
+            # If we received fewer records than the limit, we've reached the end
+            if len(page_data) < limit:
+                break
 
-    except requests.exceptions.RequestException as e:
-        print(f"Error during API request: {e}")
-        return []
+            # Increment offset for the next page
+            offset += limit
 
-def main():
-    """
-    Main function to orchestrate the scraping and data saving.
-    """
-    # Define the output file name
-    OUTPUT_FILE = "wdfw_fish_plants.json"
+            # Be kind to the API - small delay between requests
+            time.sleep(2)
 
-    # Scrape the data, starting from START_YEAR
-    fish_plants = scrape_fish_plants(start_year=START_YEAR)
+        except requests.exceptions.RequestException as e:
+            print(f"[{datetime.now()}] Error during scrape: {e}")
+            break
 
-    if fish_plants:
-        # Save the data to a JSON file
-        with open(OUTPUT_FILE, 'w') as f:
-            json.dump(fish_plants, f, indent=4)
-        print(f"Data saved to {OUTPUT_FILE}")
-    else:
-        print("No data to save. Exiting.")
+    # Save the data to a shared volume
+    with open("wdfw_fish_plants.json", "w") as f:
+        json.dump(all_data, f, indent=2)
+
+    print(f"[{datetime.now()}] Data scrape finished. {len(all_data)} records saved to wdfw_fish_plants.json")
 
 if __name__ == "__main__":
-    main()
+    fetch_and_save()
